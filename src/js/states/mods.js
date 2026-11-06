@@ -1,7 +1,7 @@
-import { openStandaloneLink, THIRDPARTY_URLS } from "../core/config";
+import { isCapacitorApp, openStandaloneLink, THIRDPARTY_URLS } from "../core/config";
 import { WEB_STEAM_SSO_AUTHENTICATED } from "../core/steam_sso";
 import { TextualGameState } from "../core/textual_game_state";
-import { MODS } from "../mods/modloader";
+import { getDisabledBuiltinMods, MODS, setBuiltinModDisabled } from "../mods/modloader";
 import { T } from "../translations";
 
 export class ModsState extends TextualGameState {
@@ -14,6 +14,10 @@ export class ModsState extends TextualGameState {
     }
 
     get modsSupported() {
+        if (isCapacitorApp()) {
+            // Our offline build ships mods inside the app, so they are always supported
+            return true;
+        }
         return (
             !WEB_STEAM_SSO_AUTHENTICATED &&
             !G_IS_STEAM_DEMO &&
@@ -28,12 +32,12 @@ export class ModsState extends TextualGameState {
 
                 <div class="actions">
                    ${
-                       this.modsSupported && MODS.mods.length > 0
+                       this.modsSupported && !isCapacitorApp() && MODS.mods.length > 0
                            ? `<button class="styledButton browseMods">${T.mods.browseMods}</button>`
                            : ""
                    }
                    ${
-                       this.modsSupported
+                       this.modsSupported && !isCapacitorApp()
                            ? `<button class="styledButton openModsFolder">${T.mods.openFolder}</button>`
                            : ""
                    }
@@ -50,6 +54,12 @@ export class ModsState extends TextualGameState {
     }
 
     getMainContentHTML() {
+        if (isCapacitorApp() && MODS.builtinModManifest.length > 0) {
+            // The offline build has builtin mods which are shipped with the app,
+            // list them so the player can see and toggle them
+            return this.getBuiltinModsHTML();
+        }
+
         if (!this.modsSupported) {
             return `
                 <div class="noModSupport">
@@ -107,6 +117,47 @@ export class ModsState extends TextualGameState {
         `;
     }
 
+    /**
+     * Renders the list of builtin mods of the offline build
+     * @returns {string}
+     */
+    getBuiltinModsHTML() {
+        const disabledMods = getDisabledBuiltinMods();
+        let modsHtml = ``;
+
+        MODS.builtinModManifest.forEach(entry => {
+            const isDisabled = entry.id ? disabledMods.indexOf(entry.id) !== -1 : false;
+            modsHtml += `
+                <div class="mod" data-mod-id="${entry.id || ""}">
+                    <div class="mainInfo">
+                        <span class="name">${entry.name || entry.file}</span>
+                        <span class="description">${entry.description || ""}</span>
+                        ${
+                            entry.settingsState
+                                ? `<span class="settingsButton" data-state="${entry.settingsState}" style="pointer-events:all;cursor:pointer;text-decoration:underline;align-self:flex-start;margin-top:5px">打开设置</span>`
+                                : ""
+                        }
+                    </div>
+                    <span class="version"><strong>${T.mods.version}</strong>${entry.version || ""}</span>
+                    <span class="author"><strong>${T.mods.author}</strong>${entry.author || ""}</span>
+                    <div class="value checkbox ${isDisabled ? "" : "checked"}">
+                        <span class="knob"></span>
+                    </div>
+                </div>
+            `;
+        });
+
+        return `
+            <div class="modsStats">
+                内置模组随游戏一起提供，开关后需重启游戏才会生效。
+            </div>
+
+            <div class="modsList">
+                ${modsHtml}
+            </div>
+        `;
+    }
+
     onEnter() {
         const steamLink = this.htmlElement.querySelector(".steamLink");
         if (steamLink) {
@@ -123,8 +174,47 @@ export class ModsState extends TextualGameState {
 
         const checkboxes = this.htmlElement.querySelectorAll(".checkbox");
         Array.from(checkboxes).forEach(checkbox => {
-            this.trackClicks(checkbox, this.showModTogglingComingSoon);
+            if (isCapacitorApp()) {
+                this.trackClicks(checkbox, () => this.onBuiltinModToggleClicked(checkbox));
+            } else {
+                this.trackClicks(checkbox, this.showModTogglingComingSoon);
+            }
         });
+
+        const settingsButtons = this.htmlElement.querySelectorAll(".settingsButton");
+        Array.from(settingsButtons).forEach(button => {
+            this.trackClicks(button, () => this.openBuiltinModSettings(button));
+        });
+    }
+
+    /**
+     * Opens the configuration state of a builtin mod
+     * @param {HTMLElement} button
+     */
+    openBuiltinModSettings(button) {
+        const stateId = button.getAttribute("data-state");
+        if (!stateId) {
+            return;
+        }
+        this.moveToStateAddGoBack(stateId);
+    }
+
+    /**
+     * Toggles a builtin mod, the change takes effect after a restart
+     * @param {HTMLElement} checkbox
+     */
+    onBuiltinModToggleClicked(checkbox) {
+        const modElement = checkbox.parentElement;
+        const id = modElement ? modElement.getAttribute("data-mod-id") : null;
+        if (!id) {
+            return;
+        }
+
+        const willBeEnabled = !checkbox.classList.contains("checked");
+        setBuiltinModDisabled(id, !willBeEnabled);
+        checkbox.classList.toggle("checked", willBeEnabled);
+
+        this.dialogs.showWarning(T.dialogs.restartRequired.title, T.dialogs.restartRequired.text);
     }
 
     showModTogglingComingSoon() {

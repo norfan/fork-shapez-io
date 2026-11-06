@@ -1,0 +1,39 @@
+#ingame_HUD_MobileControls {
+    position: absolute;
+    @include S(right, 8px);
+    top: 50%;
+    transform: translateY(-50%);
+
+    display: flex;
+    flex-direction: column;
+    @include S(gap, 6px);
+
+    pointer-events: none;
+    z-index: 340;
+
+    > .button {
+        @include PlainText;
+        pointer-events: all;
+        cursor: pointer;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        @include S(width, 44px);
+        @include S(height, 44px);
+        @include S(font-size, 16px);
+
+        @include S(border-radius, $globalBorderRadius);
+        background: rgba($ingameHudBg, 0.85);
+        color: #fff;
+
+        @include DarkThemeOverride {
+            background: rgba(darken($darkModeGameBackground, 15), 0.85);
+        }
+
+        &.pressed {
+            opacity: 0.8;
+            transform: scale(0.95);
+        }
+    }
+}

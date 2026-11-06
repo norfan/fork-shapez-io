@@ -1,0 +1,52 @@
+[
+    {
+        "file": "colorcoded.mod.js",
+        "id": "dengr1065:colorcoded",
+        "name": "ColorCoded",
+        "version": "0.3.0",
+        "author": "Даниїл Григор'єв",
+        "description": "色盲友好配色"
+    },
+    {
+        "file": "colored_matrices.mod.js",
+        "id": "dengr1065:colored_matrices",
+        "name": "Colored Matrices",
+        "version": "1.1.2",
+        "author": "Даниїл Григор'єв",
+        "description": "彩色矩阵图标",
+        "settingsState": "ColoredMatricesConfigState"
+    },
+    {
+        "file": "map_observer.mod.js",
+        "id": "dengr1065:map_observer",
+        "name": "Map Observer",
+        "version": "0.7.0",
+        "author": "Даниїл Григор'єв",
+        "description": "地图观察与总览辅助",
+        "settingsState": "MapObserverSettingsState"
+    },
+    {
+        "file": "microsandbox.mod.js",
+        "id": "dengr1065:microsandbox",
+        "name": "µSandbox",
+        "version": "1.9.0",
+        "author": "Даниїл Григор'єв",
+        "description": "沙盒与快速测试工具"
+    },
+    {
+        "file": "select-belt.mod.js",
+        "id": "emanresu:select-belt",
+        "name": "Select Belt",
+        "version": "1.0.0",
+        "author": "emanresu",
+        "description": "传送带选中增强"
+    },
+    {
+        "file": "recent_codes.mod.js",
+        "id": "dengr1065:recent_codes",
+        "name": "Recent Codes",
+        "version": "1.1.2",
+        "author": "Даниїл Григор'єв",
+        "description": "最近使用过的蓝图码"
+    }
+]

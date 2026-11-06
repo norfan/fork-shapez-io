@@ -1,6 +1,7 @@
 import { T } from "../translations";
 import { rando } from "@nastyox/rando.js";
 import { WEB_STEAM_SSO_AUTHENTICATED } from "./steam_sso";
+import { isCapacitorApp } from "./config";
 
 const bigNumberSuffixTranslationKeys = ["thousands", "millions", "billions", "trillions"];
 
@@ -765,7 +766,7 @@ export function getLogoSprite() {
         return "logo_cn.png";
     }
 
-    if (G_IS_STANDALONE || WEB_STEAM_SSO_AUTHENTICATED) {
+    if (G_IS_STANDALONE || WEB_STEAM_SSO_AUTHENTICATED || isCapacitorApp()) {
         return "logo.png";
     }
 

@@ -300,6 +300,7 @@ input {
 
 canvas {
     pointer-events: all;
+    touch-action: none;
     // image-rendering: pixelated;
     // &.smoothed {
     // }1

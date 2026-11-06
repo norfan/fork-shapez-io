@@ -15,6 +15,7 @@ import { HUDChangesDebugger } from "./parts/debug_changes";
 import { HUDDebugInfo } from "./parts/debug_info";
 import { HUDEntityDebugger } from "./parts/entity_debugger";
 import { HUDModalDialogs } from "./parts/modal_dialogs";
+import { HUDMobileControls, shouldShowMobileControls } from "./parts/mobile_controls";
 import { enumNotificationType } from "./parts/notifications";
 import { HUDSettingsMenu } from "./parts/settings_menu";
 import { HUDShapeTooltip } from "./parts/shape_tooltip";
@@ -64,6 +65,10 @@ export class GameHUD {
             changesDebugger: null,
             /* typehints:end */
         };
+
+        if (shouldShowMobileControls()) {
+            this.parts.mobileControls = new HUDMobileControls(this.root);
+        }
 
         if (G_IS_DEV) {
             this.parts.entityDebugger = new HUDEntityDebugger(this.root);

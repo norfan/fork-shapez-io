@@ -1,6 +1,5 @@
 import { AnimationFrame } from "./core/animation_frame";
 import { BackgroundResourcesLoader } from "./core/background_resources_loader";
-import { IS_MOBILE } from "./core/config";
 import { GameState } from "./core/game_state";
 import { GLOBAL_APP, setGlobalApp } from "./core/globals";
 import { InputDistributor } from "./core/input_distributor";
@@ -157,10 +156,8 @@ export class Application {
             this.stateMgr.moveToState("WegameSplashState");
         }
 
-        // Check for mobile
-        else if (IS_MOBILE) {
-            this.stateMgr.moveToState("MobileWarningState");
-        } else {
+        // Mobile devices are supported (touch controls + on screen buttons)
+        else {
             this.stateMgr.moveToState("PreloadState");
         }
 
@@ -242,6 +239,11 @@ export class Application {
         // Track touches so we can update the focus appropriately
         document.addEventListener("touchstart", this.updateFocusAfterUserInteraction.bind(this), true);
         document.addEventListener("touchend", this.updateFocusAfterUserInteraction.bind(this), true);
+
+        // Keep the simulated mouse position in sync with touches, otherwise
+        // placement logic keeps using a stale position and dragging jumps around
+        window.addEventListener("touchstart", this.handleTouchPosition.bind(this), { passive: true });
+        window.addEventListener("touchmove", this.handleTouchPosition.bind(this), { passive: true });
     }
 
     /**
@@ -292,6 +294,19 @@ export class Application {
      */
     handleMousemove(event) {
         this.mousePosition = new Vector(event.clientX, event.clientY);
+    }
+
+    /**
+     * Keeps the mouse position in sync with single finger touches, so that
+     * dragging (e.g. placing belts) works the same way as with a mouse
+     * @param {TouchEvent} event
+     */
+    handleTouchPosition(event) {
+        if (event.touches.length !== 1) {
+            return;
+        }
+        const touch = event.touches[0];
+        this.mousePosition = new Vector(touch.clientX, touch.clientY);
     }
 
     /**

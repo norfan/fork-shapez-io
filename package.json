@@ -76,6 +76,9 @@
         "yawn-yaml": "^1.5.0"
     },
     "devDependencies": {
+        "@capacitor/android": "6",
+        "@capacitor/cli": "6",
+        "@capacitor/core": "6",
         "@octokit/rest": "^18.0.6",
         "@typescript-eslint/eslint-plugin": "3.0.1",
         "@typescript-eslint/parser": "3.0.1",

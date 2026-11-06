@@ -2,6 +2,7 @@
 import { Application } from "../../application";
 /* typehints:end */
 import { WEB_STEAM_SSO_AUTHENTICATED } from "../../core/steam_sso";
+import { isCapacitorApp } from "../../core/config";
 import { enumHubGoalRewards } from "../tutorial_goals";
 
 export const finalGameShape = "RuCw--Cw:----Ru--";
@@ -369,7 +370,7 @@ const STANDALONE_LEVELS = () => [
 export function generateLevelsForVariant(app) {
     if (G_IS_STEAM_DEMO) {
         return STEAM_DEMO_LEVELS();
-    } else if (G_IS_STANDALONE || WEB_STEAM_SSO_AUTHENTICATED) {
+    } else if (G_IS_STANDALONE || WEB_STEAM_SSO_AUTHENTICATED || isCapacitorApp()) {
         return STANDALONE_LEVELS();
     }
     return WEB_DEMO_LEVELS(app);

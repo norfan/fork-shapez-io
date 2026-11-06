@@ -125,6 +125,13 @@ gulp.task("utils.copyAdditionalBuildFiles", cb => {
     return gulp.src(additionalSrcGlobs).pipe(gulp.dest(buildFolder));
 });
 
+// Copies the mods bundled with the game
+gulp.task("mods.copyBuiltin", () => {
+    return gulp
+        .src(path.join("..", "builtin_mods", "**", "*"))
+        .pipe(gulp.dest(path.join(buildFolder, "builtin_mods")));
+});
+
 // Starts a webserver on the built directory (useful for testing prod build)
 gulp.task("main.webserver", () => {
     return gulp.src(buildFolder).pipe(
@@ -222,6 +229,7 @@ gulp.task(
     gulp.series(
         "utils.cleanup",
         "utils.copyAdditionalBuildFiles",
+        "mods.copyBuiltin",
         "localConfig.findOrCreate",
         "imgres.buildAtlas",
         "imgres.atlasToJson",
@@ -253,7 +261,12 @@ for (const variant in BUILD_VARIANTS) {
 
     gulp.task(
         buildName + ".all",
-        gulp.series(buildName + ".resourcesAndCode", "css.prod-standalone", "html." + variant + ".prod")
+        gulp.series(
+            "mods.copyBuiltin",
+            buildName + ".resourcesAndCode",
+            "css.prod-standalone",
+            "html." + variant + ".prod"
+        )
     );
 
     gulp.task(buildName, gulp.series("utils.cleanup", buildName + ".all", "step.postbuild"));

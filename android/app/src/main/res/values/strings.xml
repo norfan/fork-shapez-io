@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">shapez</string>
+    <string name="title_activity_main">shapez</string>
+    <string name="package_name">io.shapez.fork</string>
+    <string name="custom_url_scheme">io.shapez.fork</string>
+</resources>

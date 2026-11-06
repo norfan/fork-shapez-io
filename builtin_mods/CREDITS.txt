@@ -1,0 +1,13 @@
+Bundled mods
+============
+These mods are bundled for offline use. All of them were downloaded from https://skimnerphi.net/ and keep their original code.
+
+Visual:
+- ColorCoded 0.3.0 by dengr1065 - https://skimnerphi.net/mods/colorcoded/
+- Colored Matrices 1.1.2 by dengr1065 - https://skimnerphi.net/mods/colored_matrices/
+- Map Observer 0.7.0 - https://skimnerphi.net/mods/map_observer/
+
+Gameplay / QoL:
+- uSandbox 1.9.0 - https://skimnerphi.net/mods/microsandbox/
+- Select Belt 1.0.0 - https://skimnerphi.net/mods/select-belt/
+- Recent Codes 1.1.2 - https://skimnerphi.net/mods/recent_codes/

@@ -4,6 +4,7 @@ import { Application } from "../application";
 import { ExplainedResult } from "./explained_result";
 import { ReadWriteProxy } from "./read_write_proxy";
 import { WEB_STEAM_SSO_AUTHENTICATED } from "./steam_sso";
+import { isCapacitorApp } from "./config";
 
 export class RestrictionManager extends ReadWriteProxy {
     /**
@@ -62,6 +63,11 @@ export class RestrictionManager extends ReadWriteProxy {
 
         if (G_IS_STANDALONE) {
             // Standalone is never limited
+            return false;
+        }
+
+        if (isCapacitorApp()) {
+            // Our offline APK build is a full version
             return false;
         }
 

@@ -4,6 +4,7 @@ import { MetaBuilding } from "../meta_building";
 /* typehints:end */
 
 import { findNiceIntegerValue } from "../../core/utils";
+import { isCapacitorApp } from "../../core/config";
 import { MetaConstantProducerBuilding } from "../buildings/constant_producer";
 import { MetaGoalAcceptorBuilding } from "../buildings/goal_acceptor";
 import { enumGameModeIds, enumGameModeTypes, GameMode } from "../game_mode";
@@ -378,7 +379,7 @@ export class RegularGameMode extends GameMode {
     }
 
     get difficultyMultiplicator() {
-        if (G_IS_STANDALONE || WEB_STEAM_SSO_AUTHENTICATED) {
+        if (G_IS_STANDALONE || WEB_STEAM_SSO_AUTHENTICATED || isCapacitorApp()) {
             if (G_IS_STEAM_DEMO) {
                 return 0.75;
             }

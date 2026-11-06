@@ -9,7 +9,15 @@ export const IS_DEBUG =
     (window.location.host.indexOf("localhost:") >= 0 || window.location.host.indexOf("192.168.0.") >= 0) &&
     window.location.search.indexOf("nodebug") < 0;
 
-export const SUPPORT_TOUCH = false;
+export const SUPPORT_TOUCH = true;
+
+/**
+ * Returns whether the game is running inside the Capacitor Android shell.
+ * Our offline APK build is a full version, not the limited web demo.
+ */
+export function isCapacitorApp() {
+    return typeof window !== "undefined" && !!window.Capacitor;
+}
 
 const smoothCanvas = true;
 

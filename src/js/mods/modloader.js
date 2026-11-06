@@ -15,6 +15,43 @@ import semverSatisifies from "semver/functions/satisfies";
 
 const LOG = createLogger("mods");
 
+const BUILTIN_DISABLED_MODS_KEY = "shapez_builtin_disabled_mods";
+
+/**
+ * Returns the ids of the builtin mods which are currently disabled by the user
+ * @returns {string[]}
+ */
+export function getDisabledBuiltinMods() {
+    try {
+        const raw = localStorage.getItem(BUILTIN_DISABLED_MODS_KEY);
+        if (!raw) {
+            return [];
+        }
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (ex) {
+        LOG.warn("Failed to read disabled builtin mods:", ex);
+        return [];
+    }
+}
+
+/**
+ * Enables or disables a builtin mod, this takes effect after a restart
+ * @param {string} id
+ * @param {boolean} disabled
+ */
+export function setBuiltinModDisabled(id, disabled) {
+    const current = getDisabledBuiltinMods().filter(entry => entry !== id);
+    if (disabled) {
+        current.push(id);
+    }
+    try {
+        localStorage.setItem(BUILTIN_DISABLED_MODS_KEY, JSON.stringify(current));
+    } catch (ex) {
+        LOG.warn("Failed to store disabled builtin mods:", ex);
+    }
+}
+
 /**
  * @typedef {{
  *   name: string;
@@ -45,6 +82,13 @@ export class ModLoader {
 
         /** @type {({ meta: ModMetadata, modClass: typeof Mod})[]} */
         this.modLoadQueue = [];
+
+        /**
+         * Metadata of all builtin mods (including disabled ones), used by the mods UI
+         * @type {Array<{ file: string, id?: string, name?: string, version?: string, author?: string, description?: string }>}
+         */
+        this.builtinModManifest = [];
+
 
         this.initialized = false;
 
@@ -109,43 +153,38 @@ export class ModLoader {
             return;
         }
 
-        if (G_IS_DEV || G_IS_STANDALONE) {
-            let exports = {};
-            const modules = require.context("../", true, /\.js$/);
-            Array.from(modules.keys()).forEach(key => {
-                // @ts-ignore
-                const module = modules(key);
-                for (const member in module) {
-                    if (member === "default" || member === "__$S__") {
-                        // Setter
-                        continue;
-                    }
-                    if (exports[member]) {
-                        throw new Error("Duplicate export of " + member);
-                    }
-
-                    Object.defineProperty(exports, member, {
-                        get() {
-                            return module[member];
-                        },
-                        set(v) {
-                            module.__$S__(member, v);
-                        },
-                    });
+        let exports = {};
+        const modules = require.context("../", true, /\.js$/);
+        Array.from(modules.keys()).forEach(key => {
+            // @ts-ignore
+            const module = modules(key);
+            for (const member in module) {
+                if (member === "default" || member === "__$S__") {
+                    // Setter
+                    continue;
                 }
-            });
+                if (exports[member]) {
+                    // Optimized builds may expose the same member from multiple modules.
+                    // Keep the first one instead of failing to boot the game.
+                    continue;
+                }
 
-            window.shapez = exports;
-        }
+                Object.defineProperty(exports, member, {
+                    get() {
+                        return module[member];
+                    },
+                    set(v) {
+                        module.__$S__(member, v);
+                    },
+                });
+            }
+        });
+
+        window.shapez = exports;
     }
 
     async initMods() {
         if (G_IS_STEAM_DEMO) {
-            this.initialized = true;
-            return;
-        }
-
-        if (!G_IS_STANDALONE && !G_IS_DEV) {
             this.initialized = true;
             return;
         }
@@ -160,8 +199,41 @@ export class ModLoader {
         this.exposeExports();
 
         let mods = [];
+
+        // Load the mods bundled with the game, this works fully offline
+        try {
+            const manifestResponse = await fetch("builtin_mods/index.json", {
+                method: "GET",
+                cache: "no-cache",
+            });
+            if (manifestResponse.status === 200) {
+                const manifest = await manifestResponse.json();
+                const entries = manifest.map(entry => (typeof entry === "string" ? { file: entry } : entry));
+                this.builtinModManifest = entries;
+                const disabledMods = getDisabledBuiltinMods();
+                for (let i = 0; i < entries.length; ++i) {
+                    const entry = entries[i];
+                    if (entry.id && disabledMods.indexOf(entry.id) !== -1) {
+                        LOG.log("Skipping disabled builtin mod:", entry.id);
+                        continue;
+                    }
+                    const response = await fetch("builtin_mods/" + entry.file, {
+                        method: "GET",
+                        cache: "no-cache",
+                    });
+                    if (response.status !== 200) {
+                        console.warn("Failed to load builtin mod", entry.file);
+                        continue;
+                    }
+                    mods.push(await response.text());
+                }
+            }
+        } catch (ex) {
+            console.warn("Failed to load builtin mods:", ex);
+        }
+
         if (G_IS_STANDALONE) {
-            mods = await ipcRenderer.invoke("get-mods");
+            mods = mods.concat(await ipcRenderer.invoke("get-mods"));
         }
         if (G_IS_DEV && globalConfig.debug.externalModUrl) {
             const modURLs = Array.isArray(globalConfig.debug.externalModUrl)
@@ -263,6 +335,34 @@ export class ModLoader {
                     settings,
                     saveSettings: () => storage.writeFileAsync(modDataFile, JSON.stringify(mod.settings)),
                 });
+
+                // Some mods defer their setup to an `onReady` hook which they only invoke
+                // after the app booted. If their internal promise chain fails (e.g. because
+                // the storage is not ready yet during boot) the hook never runs, leaving
+                // parts of the mod (such as its settings state) uninitialized. Track the
+                // invocation and call it ourselves as a fallback once the app booted.
+                let onReadyCalled = false;
+                if (typeof mod.onReady === "function") {
+                    const originalOnReady = mod.onReady;
+                    mod.onReady = function (...args) {
+                        onReadyCalled = true;
+                        return originalOnReady.apply(this, args);
+                    };
+                    MOD_SIGNALS.appBooted.add(() => {
+                        setTimeout(() => {
+                            if (onReadyCalled) {
+                                return;
+                            }
+                            try {
+                                LOG.log("Running deferred onReady of mod", meta.id);
+                                mod.onReady();
+                            } catch (ex) {
+                                LOG.warn("Failed to run deferred onReady of mod", meta.id, ex);
+                            }
+                        }, 0);
+                    });
+                }
+
                 await mod.init();
                 this.mods.push(mod);
             } catch (ex) {
