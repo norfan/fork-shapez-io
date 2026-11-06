@@ -83,6 +83,13 @@ export class Camera extends BasicSerializableObject {
         /** @type {Vector} */
         this.touchPostMoveVelocity = new Vector(0, 0);
 
+        /**
+         * If enabled, single finger touches are treated as right clicks, which
+         * allows deleting buildings on touch devices
+         * @type {boolean}
+         */
+        this.touchDeletionMode = false;
+
         // Handlers
         this.downPreHandler = /** @type {TypedSignal<[Vector, enumMouseButton]>} */ (new Signal());
         this.movePreHandler = /** @type {TypedSignal<[Vector]>} */ (new Signal());
@@ -679,6 +686,13 @@ export class Camera extends BasicSerializableObject {
      */
     combinedSingleTouchStartHandler(x, y) {
         const pos = new Vector(x, y);
+        if (this.touchDeletionMode) {
+            // Treat the touch as a right click so buildings get deleted
+            this.downPreHandler.dispatch(pos, enumMouseButton.right);
+            // Never pan the camera in deletion mode
+            return;
+        }
+
         if (this.downPreHandler.dispatch(pos, enumMouseButton.left) === STOP_PROPAGATION) {
             // Somebody else captured it
             return;
@@ -701,6 +715,11 @@ export class Camera extends BasicSerializableObject {
         const pos = new Vector(x, y);
         if (this.movePreHandler.dispatch(pos) === STOP_PROPAGATION) {
             // Somebody else captured it
+            return;
+        }
+
+        if (this.touchDeletionMode) {
+            // Don't pan the camera while deleting
             return;
         }
 

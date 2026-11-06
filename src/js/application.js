@@ -241,9 +241,17 @@ export class Application {
         document.addEventListener("touchend", this.updateFocusAfterUserInteraction.bind(this), true);
 
         // Keep the simulated mouse position in sync with touches, otherwise
-        // placement logic keeps using a stale position and dragging jumps around
-        window.addEventListener("touchstart", this.handleTouchPosition.bind(this), { passive: true });
-        window.addEventListener("touchmove", this.handleTouchPosition.bind(this), { passive: true });
+        // placement logic keeps using a stale position and dragging jumps around.
+        // Use the capture phase so the position is already updated when the
+        // camera handles the touch (it deletes buildings below the cursor).
+        window.addEventListener("touchstart", this.handleTouchPosition.bind(this), {
+            passive: true,
+            capture: true,
+        });
+        window.addEventListener("touchmove", this.handleTouchPosition.bind(this), {
+            passive: true,
+            capture: true,
+        });
     }
 
     /**
@@ -293,6 +301,13 @@ export class Application {
      * @param {MouseEvent} event
      */
     handleMousemove(event) {
+        // Ignore mouse events which were synthesized from a touch. Otherwise tapping
+        // a HUD button would move the simulated mouse below the button, making the
+        // building preview jump there (e.g. when pressing the rotate button).
+        // @ts-ignore - sourceCapabilities is not in the standard typings
+        if (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents) {
+            return;
+        }
         this.mousePosition = new Vector(event.clientX, event.clientY);
     }
 
@@ -302,6 +317,12 @@ export class Application {
      * @param {TouchEvent} event
      */
     handleTouchPosition(event) {
+        // Only sync touches on the game canvas. Otherwise tapping HUD buttons would
+        // move the simulated mouse position below the button, making the building
+        // preview jump there (e.g. when pressing the rotate button).
+        if (!(event.target instanceof HTMLCanvasElement)) {
+            return;
+        }
         if (event.touches.length !== 1) {
             return;
         }

@@ -25,6 +25,7 @@ export class HUDMobileControls extends BaseHUDPart {
 
         const buttons = [
             { label: "⟳", binding: KEYMAPPINGS.placement.rotateWhilePlacing },
+            { label: "DEL", deletionToggle: true },
             { label: "Q", binding: KEYMAPPINGS.placement.pipette },
             { label: "⌖", binding: KEYMAPPINGS.navigation.centerMap },
             { label: "+", binding: KEYMAPPINGS.navigation.mapZoomIn },
@@ -34,11 +35,41 @@ export class HUDMobileControls extends BaseHUDPart {
 
         for (let i = 0; i < buttons.length; ++i) {
             const button = makeDiv(this.element, null, ["button"], buttons[i].label);
-            this.trackClicks(button, () => {
-                this.root.keyMapper.getBinding(buttons[i].binding).signal.dispatch();
-            });
+            if (buttons[i].deletionToggle) {
+                button.style.fontSize = "13px";
+                const updateState = () => {
+                    const active = this.root.camera.touchDeletionMode;
+                    button.style.background = active ? "rgba(196, 62, 74, 0.92)" : "";
+                    button.style.boxShadow = active ? "0 0 0 2px rgba(255, 255, 255, 0.65)" : "";
+                };
+                this.deletionStateUpdater = updateState;
+                this.trackClicks(button, () => {
+                    const active = !this.root.camera.touchDeletionMode;
+                    this.root.camera.touchDeletionMode = active;
+                    if (active) {
+                        // Deletion only works while no building is selected
+                        this.root.hud.parts.buildingPlacer.currentMetaBuilding.set(null);
+                    }
+                    updateState();
+                });
+                updateState();
+            } else {
+                this.trackClicks(button, () => {
+                    this.root.keyMapper.getBinding(buttons[i].binding).signal.dispatch();
+                });
+            }
         }
     }
 
-    initialize() {}
+    initialize() {
+        // Leave deletion mode as soon as the player picks a building
+        this.root.hud.signals.selectedPlacementBuildingChanged.add(metaBuilding => {
+            if (metaBuilding && this.root.camera.touchDeletionMode) {
+                this.root.camera.touchDeletionMode = false;
+                if (this.deletionStateUpdater) {
+                    this.deletionStateUpdater();
+                }
+            }
+        });
+    }
 }
