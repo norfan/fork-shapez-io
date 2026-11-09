@@ -250,6 +250,7 @@ export class HUDBuildingPlacerLogic extends BaseHUDPart {
      * Aborts any dragging
      */
     abortDragging() {
+        this.root.undoMgr.endGroup();
         this.currentlyDragging = true;
         this.currentlyDeleting = false;
         this.initialPlacementVector = null;
@@ -331,6 +332,7 @@ export class HUDBuildingPlacerLogic extends BaseHUDPart {
         const tile = worldPos.toTileSpace();
         const contents = this.root.map.getTileContent(tile, this.root.currentLayer);
         if (contents) {
+            this.root.undoMgr.recordDeletion(contents);
             if (this.root.logic.tryDeleteBuilding(contents)) {
                 this.root.soundProxy.playUi(SOUNDS.destroyBuilding);
                 return true;
@@ -460,6 +462,8 @@ export class HUDBuildingPlacerLogic extends BaseHUDPart {
         });
 
         if (entity) {
+            this.root.undoMgr.recordPlacement(entity);
+
             // Succesfully placed, find which entity we actually placed
             this.root.signals.entityManuallyPlaced.dispatch(entity);
 
@@ -691,6 +695,7 @@ export class HUDBuildingPlacerLogic extends BaseHUDPart {
             this.currentlyDragging = true;
             this.currentlyDeleting = false;
             this.lastDragTile = this.root.camera.screenToWorld(pos).toTileSpace();
+            this.root.undoMgr.beginGroup();
 
             // Place initial building, but only if direction lock is not active
             if (!this.isDirectionLockActive) {
@@ -709,6 +714,7 @@ export class HUDBuildingPlacerLogic extends BaseHUDPart {
             this.currentlyDragging = true;
             this.currentlyDeleting = true;
             this.lastDragTile = this.root.camera.screenToWorld(pos).toTileSpace();
+            this.root.undoMgr.beginGroup();
             if (this.deleteBelowCursor()) {
                 return STOP_PROPAGATION;
             }
@@ -785,6 +791,7 @@ export class HUDBuildingPlacerLogic extends BaseHUDPart {
                         // Deletion
                         const contents = this.root.map.getLayerContentXY(x0, y0, this.root.currentLayer);
                         if (contents && !contents.queuedForDestroy && !contents.destroyed) {
+                            this.root.undoMgr.recordDeletion(contents);
                             if (this.root.logic.tryDeleteBuilding(contents)) {
                                 anythingDeleted = true;
                             }

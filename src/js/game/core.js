@@ -38,6 +38,7 @@ import { ShapeDefinitionManager } from "./shape_definition_manager";
 import { AchievementProxy } from "./achievement_proxy";
 import { SoundProxy } from "./sound_proxy";
 import { GameTime } from "./time/game_time";
+import { UndoManager } from "./undo_manager";
 import { MOD_SIGNALS } from "../mods/mod_signals";
 
 const logger = createLogger("ingame/core");
@@ -126,6 +127,7 @@ export class GameCore {
         root.hubGoals = new HubGoals(root);
         root.productionAnalytics = new ProductionAnalytics(root);
         root.buffers = new BufferMaintainer(root);
+        root.undoMgr = new UndoManager(root);
 
         // Initialize the hud once everything is loaded
         this.root.hud.initialize();

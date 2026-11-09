@@ -26,6 +26,8 @@ export class HUDMobileControls extends BaseHUDPart {
         const buttons = [
             { label: "⟳", binding: KEYMAPPINGS.placement.rotateWhilePlacing },
             { label: "DEL", deletionToggle: true },
+            { label: "撤", undo: true },
+            { label: "清", clearAll: true },
             { label: "Q", binding: KEYMAPPINGS.placement.pipette },
             { label: "⌖", binding: KEYMAPPINGS.navigation.centerMap },
             { label: "+", binding: KEYMAPPINGS.navigation.mapZoomIn },
@@ -53,12 +55,52 @@ export class HUDMobileControls extends BaseHUDPart {
                     updateState();
                 });
                 updateState();
+            } else if (buttons[i].undo) {
+                this.trackClicks(button, () => {
+                    this.root.undoMgr.undo();
+                });
+            } else if (buttons[i].clearAll) {
+                button.style.fontSize = "13px";
+                this.clearButton = button;
+                this.trackClicks(button, () => {
+                    if (this.clearConfirmPending) {
+                        this.resetClearConfirm();
+                        this.root.undoMgr.clearAllBuildings();
+                        return;
+                    }
+                    this.clearConfirmPending = true;
+                    button.innerHTML = "确认?";
+                    button.style.background = "rgba(196, 62, 74, 0.92)";
+                    button.style.boxShadow = "0 0 0 2px rgba(255, 255, 255, 0.65)";
+                    this.clearConfirmTimeout = setTimeout(() => this.resetClearConfirm(), 4000);
+                });
             } else {
                 this.trackClicks(button, () => {
                     this.root.keyMapper.getBinding(buttons[i].binding).signal.dispatch();
                 });
             }
         }
+    }
+
+    /**
+     * Resets the "clear all" button back to its normal state
+     */
+    resetClearConfirm() {
+        this.clearConfirmPending = false;
+        if (this.clearConfirmTimeout) {
+            clearTimeout(this.clearConfirmTimeout);
+            this.clearConfirmTimeout = null;
+        }
+        if (this.clearButton) {
+            this.clearButton.innerHTML = "清";
+            this.clearButton.style.background = "";
+            this.clearButton.style.boxShadow = "";
+        }
+    }
+
+    cleanup() {
+        super.cleanup();
+        this.resetClearConfirm();
     }
 
     initialize() {
