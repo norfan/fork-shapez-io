@@ -17,26 +17,83 @@ export function shouldShowMobileControls() {
 }
 
 /**
+ * Applies the styles of the regular control buttons to a button which is not
+ * a direct child of the control bar (and therefore not styled by the stylesheet).
+ * @param {HTMLElement} button
+ */
+function styleStandaloneButton(button) {
+    Object.assign(button.style, {
+        pointerEvents: "all",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "44px",
+        height: "44px",
+        fontSize: "16px",
+        borderRadius: "6px",
+        background: "rgba(51, 52, 59, 0.85)",
+        color: "#fff",
+    });
+}
+
+/**
  * On screen buttons which replace the essential keyboard shortcuts on mobile devices
  */
 export class HUDMobileControls extends BaseHUDPart {
     createElements(parent) {
         this.element = makeDiv(parent, "ingame_HUD_MobileControls");
 
-        const buttons = [
+        // Camera and menu buttons are displayed in a row at the top, so the
+        // vertical bar on the right doesn't get too tall for small screens
+        this.topElement = makeDiv(parent, null, ["mobileControlsTop"]);
+        Object.assign(this.topElement.style, {
+            position: "absolute",
+            top: "8px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            flexDirection: "row",
+            gap: "6px",
+            zIndex: "340",
+            pointerEvents: "none",
+        });
+
+        // Building related controls stay on the right side
+        this.createButtons(this.element, [
             { label: "⟳", binding: KEYMAPPINGS.placement.rotateWhilePlacing },
             { label: "DEL", deletionToggle: true },
             { label: "撤", undo: true },
             { label: "清", clearAll: true },
             { label: "Q", binding: KEYMAPPINGS.placement.pipette },
-            { label: "⌖", binding: KEYMAPPINGS.navigation.centerMap },
-            { label: "+", binding: KEYMAPPINGS.navigation.mapZoomIn },
-            { label: "−", binding: KEYMAPPINGS.navigation.mapZoomOut },
-            { label: "☰", binding: KEYMAPPINGS.general.back },
-        ];
+        ]);
 
+        // Camera and menu controls are moved to the top of the screen
+        this.createButtons(
+            this.topElement,
+            [
+                { label: "⌖", binding: KEYMAPPINGS.navigation.centerMap },
+                { label: "+", binding: KEYMAPPINGS.navigation.mapZoomIn },
+                { label: "−", binding: KEYMAPPINGS.navigation.mapZoomOut },
+                { label: "☰", binding: KEYMAPPINGS.general.back },
+            ],
+            true
+        );
+    }
+
+    /**
+     * Creates the given buttons in the given container
+     * @param {HTMLElement} container
+     * @param {Array<Object>} buttons
+     * @param {boolean=} standalone Whether the buttons are outside of the control bar
+     */
+    createButtons(container, buttons, standalone = false) {
         for (let i = 0; i < buttons.length; ++i) {
-            const button = makeDiv(this.element, null, ["button"], buttons[i].label);
+            const button = makeDiv(container, null, ["button"], buttons[i].label);
+            if (standalone) {
+                styleStandaloneButton(button);
+            }
+
             if (buttons[i].deletionToggle) {
                 button.style.fontSize = "13px";
                 const updateState = () => {
